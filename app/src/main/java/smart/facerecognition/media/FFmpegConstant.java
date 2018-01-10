@@ -49,6 +49,7 @@ public class FFmpegConstant {
     public static final String VERSION              = "ffmpeg version";
     public static final String CONFIG               = "configuration:";
     public static final String FRAME                = "frame=";
+    public static final String QUIT                = "video:";
 
     public static final String FAIL_OPEN            = "Failed to open segment";
     public static final String FAIL_WRITE           = "Could not write header";

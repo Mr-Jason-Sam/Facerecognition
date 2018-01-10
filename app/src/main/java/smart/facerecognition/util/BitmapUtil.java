@@ -2,7 +2,7 @@
  * <p><h1>Copyright:</h1><strong><a href="http://www.smart-f.cn">
  * BeiJing Smart Future Technology Co.Ltd. 2015 (c)</a></strong></p>
  */
-package smart.facerecognition;
+package smart.facerecognition.util;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 //import cn.smart.droid.media.jni.MediaConstant;
-import smart.facerecognition.Face;
+import smart.facerecognition.SmartAnalyze.Face;
 
 /**  
  * <p><h1>Copyright:</h1><strong><a href="http://www.smart-f.cn">
@@ -44,7 +44,7 @@ import smart.facerecognition.Face;
 public class BitmapUtil {
 
     private static final String TAG = BitmapUtil.class.getSimpleName();
-    public static final String MEDIA_FORMAT_JPG                            = ".jpg";
+    public static final String MEDIA_FORMAT_JPEG                            = ".jpeg";
     
     /**
      * 按给定的Face的规格裁切图片
@@ -147,8 +147,8 @@ public class BitmapUtil {
     /** 
      * 将bitmap生成为图片存到本地 
      */  
-    public static File saveBitmapToJpg(Bitmap bitMap, String dstPath, String name) {
-        File file = new File(dstPath+"/"+name+MEDIA_FORMAT_JPG);
+    public static File saveBitmapToJpeg(Bitmap bitMap, String dstPath, String name) {
+        File file = new File(dstPath+File.separator + name + MEDIA_FORMAT_JPEG);
         FileOutputStream fOut = null;
         try {
             if (!file.exists())

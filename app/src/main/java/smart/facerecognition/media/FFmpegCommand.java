@@ -308,18 +308,18 @@ public class FFmpegCommand {
     }
 
     public static List<String> getKeyFrameIntervalCmd(String srcUrl, String storePath,
-                                                  String name, float interval, String format) {
-        float r = 1/interval;
+                                                  String name, int interval, String format) {
+        double r = 1.0/interval;
         Log.i(TAG, "getKeyFrameInfoCmd, src:"+srcUrl+", store:"+storePath
                 +", name:"+name+", format:"+format);
         List<String> snapshot = new ArrayList<String>();
         snapshot.add(srcUrl);
         snapshot.add("-vf");
-        snapshot.add("select=eq(pict_type\\,PICT_TYPE_I)");
+        snapshot.add("select='eq(pict_type\\,PICT_TYPE_I)'");
         snapshot.add("-vsync");
         snapshot.add("2");
         snapshot.add("-r");
-        snapshot.add(Float.toString(r));
+        snapshot.add(Double.toString(r));
         //snapshot.add("-frames");
         //snapshot.add("3");
         snapshot.add(storePath+name+format);
@@ -350,7 +350,7 @@ public class FFmpegCommand {
     }
     private static List<String> wrapCmdWithoutTcp(List<String> command) {
         List<String> cmd= new ArrayList<String>();
-        cmd.add(FFmpegConstant.getFfmpegPath());
+        cmd.add(FFmpegConstant.FFMPEG_SYSTEM_PATH);
         cmd.add("-i");
         cmd.addAll(command);
         return cmd;

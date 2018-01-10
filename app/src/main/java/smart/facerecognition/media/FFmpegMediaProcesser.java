@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -56,6 +57,12 @@ public class FFmpegMediaProcesser {
     private String snapshotPathPattern;
     private String snapshotPath;
     private int snapshotIndex;
+    private float keyframeTime1 = -1;
+    private float keyframeTime2 = -1;
+    private float keyframeTime3 = -1;
+
+    public static final String   DEFAULT_IMAGE_SUCCESSIVE_NAME_PATTERN     = "%08d";
+    public static final String NAME_PRE_SNAP                 = "snap";
 
     private FFmpegMediaTaskListener mListener;
     public interface FFmpegMediaTaskListener {
@@ -164,6 +171,23 @@ public class FFmpegMediaProcesser {
         return MediaConstant.SMART_OK;
     }
 
+    public int startSnapshotKeyFrame(String srcUrl, String storePath, int interval, String format) {
+        Log.i(TAG, "startSnapshotKeyFrame, srcUrl:"+srcUrl + ", status:"+status);
+        status = STATUS_START;
+        String name = File.separator + NAME_PRE_SNAP + FFmpegMediaProcesser.DEFAULT_IMAGE_SUCCESSIVE_NAME_PATTERN;
+        /*processFFmpegCmd(FFmpegCommand.getSnapshotSomeCmd(srcUrl, storePath,
+                name, format, start, interval, end));*/
+        processFFmpegCmd(FFmpegCommand.getKeyFrameIntervalCmd(srcUrl, storePath, name, interval, format));
+        snapshotPathPattern = (storePath+name).replace(FFmpegMediaProcesser.DEFAULT_IMAGE_SUCCESSIVE_NAME_PATTERN, "%s")
+                + format;
+        snapshotIndex = 0;
+        keyframeTime1 = -1;
+        keyframeTime2 = -1;
+        keyframeTime3 = -1;
+        outputType = format;
+        return MediaConstant.SMART_OK;
+    }
+
     public void processFFmpegCmd(final List<String> command) {
         new Thread(new Runnable() {
             @Override
@@ -172,12 +196,13 @@ public class FFmpegMediaProcesser {
                     ProcessBuilder builder = new ProcessBuilder();
                     builder.command(command);
                     builder.redirectErrorStream(true);
+                    Log.i(TAG, "command: " + command.toString());
                     p = builder.start();
                     BufferedReader buf = null;
                     String line = null;
                     buf = new BufferedReader(new InputStreamReader(p.getInputStream()));
                     while (status == STATUS_START && (line = buf.readLine()) != null) {
-                        //Log.i(TAG, "processFFmpegCmd, line:" + line);
+                        Log.i(TAG, "processFFmpegCmd, line:" + line);
                         int what = analyze(line);
                         if (what > 0) {
                             int arg2 = 0;
@@ -198,11 +223,15 @@ public class FFmpegMediaProcesser {
                                         || outputType.equals(MediaConstant.MEDIA_FORMAT_MP4)) {
                                     Log.e(TAG, "processFFmpegCmd, exit self when process video.");
                                 } else if (outputType.equals(MediaConstant.MEDIA_FORMAT_JPG)
-                                        || outputType.equals(MediaConstant.MEDIA_FORMAT_BMP)) {
+                                        || outputType.equals(MediaConstant.MEDIA_FORMAT_BMP)
+                                        || outputType.equals(MediaConstant.MEDIA_FORMAT_JPEG)) {
                                     Log.e(TAG, "processFFmpegCmd, exit self when process image.");
                                 }
-                                what = MediaConstant.SMART_MEDIA_RTSP_TASK_EVENT_READ_FRAME_ERROR;
+                                //what = MediaConstant.SMART_MEDIA_RTSP_TASK_EVENT_READ_FRAME_ERROR;
                                 break;
+                                case MediaConstant.SMART_MEDIA_FFMPEG_QUIT:
+                                    Log.i(TAG, "FFmpeg is quit!");
+                                    break;
                             default:
                                 break;
                             }
@@ -216,7 +245,7 @@ public class FFmpegMediaProcesser {
                     }
                     p.waitFor();//wait for command completed.
                     Log.i(TAG, "processFFmpegCmd, process exit.");
-                    if (status != STATUS_CLOSE) {//TODO 
+                    if (status != STATUS_CLOSE) {//TODO
                         mListener.onMediaTaskEvent(MediaConstant.SMART_MEDIA_RTSP_TASK_EVENT_READ_FRAME_ERROR,
                                 0, 0, "");
                     }
@@ -241,22 +270,27 @@ public class FFmpegMediaProcesser {
         } else if (isFFmpegFailed(line)) {
             return MediaConstant.SMART_MEDIA_RTSP_TASK_EVENT_READ_FRAME_ERROR;
         } else if (isFFmpegProcessing(line)) {
-            if (outputType.equals(MediaConstant.MEDIA_FORMAT_MP4)
-                    || outputType.equals(MediaConstant.MEDIA_FORMAT_MP4)) {
+            if (isVideo(outputType)) {
                 result = isRecordCompleted(line);
-            } else if (outputType.equals(MediaConstant.MEDIA_FORMAT_JPG)
-                    || outputType.equals(MediaConstant.MEDIA_FORMAT_BMP)) {
+            } else if (isPic(outputType)) {
                 result = calImageIndex(line);
             }
+        } else if (isKeyFrameAnalyze(line)) {
+            result = getKeyFrameInfo(line);
         } else if (isFFmpegExit(line)) {
             Log.i(TAG, "analyze, ffmpeg exit self.");
             return MediaConstant.SMART_MEDIA_TASK_COMPLETE;
-        } else {
+        } else if (isFileNotExist(line)) {
+            return MediaConstant.SMART_MEDIA_TASK_INPUT_ERROR;
+        } else if (isFFmpegQuit(line)){
+            return MediaConstant.SMART_MEDIA_FFMPEG_QUIT;
+        }else {
             //Log.i(TAG, "analyze, unsupport line.");
         }
-        
         return result;
     }
+
+
 
     double duration = 0;//seconds
     private int isRecordCompleted(String line) {
@@ -271,7 +305,7 @@ public class FFmpegMediaProcesser {
         } else {
             Log.w(TAG, "isRecordCompleted, invalid line:"+line);
         }
-        return 0;
+        return MediaConstant.SMART_OK;
     }
 
     private static double getTimelen(String timelen) {
@@ -287,6 +321,31 @@ public class FFmpegMediaProcesser {
             seconds += Float.valueOf(strs[2]);//Math.round()
         }
         return seconds;
+    }
+
+    private int getKeyFrameInfo(String line) {
+        int result = -1;
+        String before = " t:";
+        String after = " key:";
+        int start = line.indexOf(before)+before.length();
+        int end = line.indexOf(after);
+        Log.i(TAG, "getKeyFrameInfo, l:"+line+",s:"+start+",e:"+end);
+        if (start > before.length() && end > start) {
+            String time = line.substring(start, end);
+            float t = Float.valueOf(time);
+            if (keyframeTime1 < 0)
+                keyframeTime1 = t;
+            else if (keyframeTime2 < 0)
+                keyframeTime2 = t;
+            else if (keyframeTime3 < 0) {
+                keyframeTime3 = t;
+                result = MediaConstant.SMART_MEDIA_RTSP_TASK_EVENT_IMAGE_COMPLETE;
+            } else {
+                Log.e(TAG, "getKeyFrameInfo invalid line:"+line);
+            }
+            Log.i(TAG, "getKeyFrameInfo, t:"+time+",1:"+keyframeTime1+",2:"+keyframeTime2+",3:"+keyframeTime3);
+        }
+        return result;
     }
 
     private int calImageIndex(String line) {
@@ -310,6 +369,24 @@ public class FFmpegMediaProcesser {
             Log.w(TAG, "calImageIndex, invalid line:"+line);
         }
         return index;
+    }
+
+    private static boolean isKeyFrameAnalyze(String line) {
+        if (StringUtils.isEmpty(line))
+            return false;
+        if (line.contains(FFmpegConstant.KEY_FRAME)) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isFileNotExist(String line) {
+        if (StringUtils.isEmpty(line))
+            return false;
+        if (line.contains(FFmpegConstant.NO_FILE)) {
+            return true;
+        }
+        return false;
     }
 
     private static boolean isFFmpegFailed(String line) {
@@ -341,11 +418,42 @@ public class FFmpegMediaProcesser {
         return false;
     }
 
+    private static boolean isFFmpegQuit(String line) {
+        if (line.startsWith(FFmpegConstant.QUIT)){
+            return true;
+        }
+        return false;
+    }
+
     private void resetStatus() {
         duration = 0;
     }
 
     private void clearStatus() {
         outputType = "";
+    }
+
+    public static boolean isVideo(File f) {
+        return f.getName().endsWith(MediaConstant.MEDIA_FORMAT_MP4)
+                || f.getName().endsWith(MediaConstant.MEDIA_FORMAT_TS);
+    }
+
+    public static boolean isVideo(String format) {
+        return format.equals(MediaConstant.MEDIA_FORMAT_MP4)
+                || format.equals(MediaConstant.MEDIA_FORMAT_TS);
+    }
+
+    public static boolean isPic(File f) {
+        return f.getName().endsWith(MediaConstant.MEDIA_FORMAT_JPG)
+                || f.getName().endsWith(MediaConstant.MEDIA_FORMAT_BMP)
+                || f.getName().endsWith(MediaConstant.MEDIA_FORMAT_JPEG)
+                || f.getName().endsWith(MediaConstant.MEDIA_FORMAT_PNG);
+    }
+
+    public static boolean isPic(String format) {
+        return format.equals(MediaConstant.MEDIA_FORMAT_JPG)
+                || format.equals(MediaConstant.MEDIA_FORMAT_BMP)
+                || format.equals(MediaConstant.MEDIA_FORMAT_JPEG)
+                || format.equals(MediaConstant.MEDIA_FORMAT_PNG);
     }
 }

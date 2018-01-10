@@ -8,7 +8,7 @@ import java.util.List;
 
 public class FaceIdentifyResult {
     private int result_num;
-    private List<identifyInfo> result;
+    private List<IdentifyInfo> result;
     private long log_id;
 
     public int getResult_num() {
@@ -19,11 +19,11 @@ public class FaceIdentifyResult {
         this.result_num = result_num;
     }
 
-    public List<identifyInfo> getResult() {
+    public List<IdentifyInfo> getResult() {
         return result;
     }
 
-    public void setResult(List<identifyInfo> result) {
+    public void setResult(List<IdentifyInfo> result) {
         this.result = result;
     }
 

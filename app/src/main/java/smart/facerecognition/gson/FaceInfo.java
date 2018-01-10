@@ -1,8 +1,6 @@
 package smart.facerecognition.gson;
 
-import android.location.Location;
-
-import smart.facerecognition.Face;
+import smart.facerecognition.SmartAnalyze.Face;
 
 /**
  * Created by jasonsam on 2017/12/7.

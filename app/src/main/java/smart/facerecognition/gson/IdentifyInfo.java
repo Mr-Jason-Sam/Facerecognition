@@ -6,11 +6,13 @@ import java.util.List;
  * Created by jasonsam on 2017/12/11.
  */
 
-public class identifyInfo {
+public class IdentifyInfo{
     String uid;
     List<Double> scores;
     String droup_id;
     String user_info;
+
+    public IdentifyInfo(){}
 
     public String getUid() {
         return uid;

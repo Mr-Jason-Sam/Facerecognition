@@ -1,4 +1,4 @@
-package smart.facerecognition;
+package smart.facerecognition.SmartAnalyze;
 
 /**
  * Created by jasonsam on 2017/12/7.

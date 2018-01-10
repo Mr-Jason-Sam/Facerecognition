@@ -40,19 +40,25 @@ public class MediaConstant {
     public static final int SMART_MEDIA_RTSP_TASK_EVENT_MP4_COMPLETE       = 0x0002;
     /// arg1: the jpeg file path witch has been saved.
     /// arg2: the jpeg file number
+    //17
     public static final int SMART_MEDIA_RTSP_TASK_EVENT_IMAGE_COMPLETE     = 0x0011;
     /// arg1: the last jpeg file path witch has been saved.
     /// arg2: the total file number
     public static final int SMART_MEDIA_RTSP_TASK_EVENT_IMAGE_FULL_COMPLETE= 0x0012;
     /// arg1: NULL
     /// arg2: NULL
+    //4097
     public static final int SMART_MEDIA_RTSP_TASK_EVENT_READ_FRAME_ERROR   = 0x1001;
+
+
+    public static final int SMART_MEDIA_FFMPEG_QUIT                        = 0x1003;
+
     /// arg1: NULL
     /// arg2: NULL
     public static final int SMART_MEDIA_RTSP_TASK_EVENT_NETWORK_TIMEOUT    = 0x1002;
     public static final int SMART_MEDIA_TASK_INPUT_ERROR                   = 0x1003;
+    //-1
     public static final int SMART_MEDIA_TASK_COMPLETE                      = 0xffff;
-
     public static final int PRODUCE_START                                  = 0x2001;
     public static final int PRODUCE_SNAPSHOT_PREVIEW                       = 0x2002;
     public static final int PRODUCE_SNAPSHOT_LIST                          = 0x2003;

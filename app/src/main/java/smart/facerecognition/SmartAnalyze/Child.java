@@ -1,7 +1,8 @@
-package smart.facerecognition;
+package smart.facerecognition.SmartAnalyze;
 
 import android.graphics.Bitmap;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -15,7 +16,7 @@ public class Child {
     int grade;
     String className;
     Bitmap face;
-    List<String> videoName;
+    List<String> videoName = new ArrayList<String>();
 
     public Child(String name) {
         this.name = name;
